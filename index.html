@@ -1,0 +1,183 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.0-rc.2/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.0-rc.2/react-dom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+  
+<div id="game"></div>
+    
+<script type="text/babel">
+      
+   //
+   // Gameboard Cell Widget.
+   //
+   var GameBoardCell = React.createClass({
+
+      //
+      // Pass the click of this cell up the stack.
+      //
+      handleClick : function(e){
+         this.props.onClickedCell(this.props.cellIndex);
+      },
+      
+      render: function() {
+      
+         //
+         // Quick and dirty coloration of the cell. Should have used CSS.
+         //
+         var backgroundColor = '#aaa';
+         var color = "#333";
+         switch(this.props.cellValue.state) {
+            case "STATE_COVERED":
+               backgroundColor = '#aaa';
+               color = "#aaa";
+               break;
+            case "STATE_REVEALED":
+               backgroundColor = '#fff';
+               break;
+            case "STATE_REVEALED_ENDED_GAME":
+               backgroundColor = '#ff0000';
+               break;
+      
+         }
+      
+         var divStyle = {
+            width:'20px',
+            height:'20px',
+            color:color,
+            backgroundColor:backgroundColor
+         };
+        
+      
+         return (
+           <td className="noselect" onClick={this.handleClick} style={divStyle}>{this.props.cellValue.value}</td>
+         )
+      }
+   });
+
+   //
+   // A row on the Gameboard.
+   //
+   var GameBoardRow = React.createClass({
+        render: function() {
+           return (
+              <tr>
+                 {this.props.cells.map(function(listValue){
+                    return <GameBoardCell 
+                       onClickedCell={this.props.onClickedCell} cellIndex={listValue.index} cellValue={listValue.data}/>;
+                 },this)}
+              </tr>
+           )
+        }
+   });
+
+   //
+   // This is the Gameboard grid and the little "New Game" button.
+   //
+   var GameBoardUI = React.createClass({
+
+      render: function() {
+         var rows = [];
+         var currRow = null;
+      
+         //
+         // Convert the row-major list of cells into rows.
+         //
+         this.props.gameGridData.forEach(function(cellData,idx) {
+            console.log('data: ' + cellData + ' idx: ' + idx)
+            if (idx % this.props.cellsPerRow === 0) {
+               currRow = [];
+               rows.push(currRow);
+            }
+            currRow.push({
+               data:cellData,
+               index:idx
+            });
+         },this);
+      
+         
+         return (
+            <div>
+              <table>
+                {
+                   rows.map(function(rowData) {
+                      return <GameBoardRow 
+                         onClickedCell={this.props.onClickedCell} 
+                                cells={rowData} />
+                   },this)
+                }
+          
+              </table>
+              <button onClick={this.props.onNewGame} >New Game</button>
+            </div>
+         )
+      }
+   });
+
+
+   var CELLS_PER_ROW = 6;
+   var BOMBS = 6;
+      
+   // 
+   // This will be the MODEL that drives the game. It is an "active" model (in that it houses all of the
+   // game's smarts).
+   //
+   var g = new GameGrid(6, 6);
+   var cellsPerRow = 6;
+      
+   //
+   // The user clicked a cell in the gameboard.
+   //
+   function onClickedCell(clickedCellIndex) {
+      
+      if (g.gameOver) {
+         return;
+      }
+
+      //
+      // Extract the gameboard row and column from the index of the clicked cell.
+      //      
+      var col = clickedCellIndex % cellsPerRow;
+      var row = Math.floor(clickedCellIndex/cellsPerRow);
+
+      //
+      // Update the "model" that drives the UI. Select the cell. Maybe this will uncover other cells. And
+      // maybe this will cause the game to be over - because the user clicked on a mine.
+      //
+      g.selectCell(row,col);
+      reRender();
+
+      if (g.gameOver) {
+         setTimeout(function() {alert('Game Over!');},100);
+      }
+   }
+   
+   //
+   // The user clicked the "New Game" button.
+   //   
+   function onNewGame() {
+      g.init();
+      reRender();
+   }
+     
+   //
+   // This is the function that renders the gameboard. It is called upon startup and then each time
+   // the player clicks a cell or clicks the "New Game" button.
+   // 
+   function reRender() {
+      ReactDOM.render(
+        <GameBoardUI
+              onClickedCell={onClickedCell}
+              onNewGame={onNewGame}
+                     cellsPerRow={cellsPerRow}
+                     gameGridData={g.cells}/>,
+        document.getElementById('game')
+      );
+   }
+   
+   //
+   // The first render.
+   //   
+   reRender();
+
+      
+</script>
+  
